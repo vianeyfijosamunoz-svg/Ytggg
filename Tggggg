@@ -327,15 +327,23 @@ LeftVisualsGroup:AddToggle("MinecraftTexturesToggle", {
     Text = "Minecraft Textures (Blocks)", Default = false,
     Callback = function(v)
         getgenv().MinecraftTexturesActive = v
-        for _, p in ipairs(workspace:GetDescendants()) do
-            if p:IsA("BasePart") and not p.Parent:FindFirstChild("Humanoid") then
-                if v then
-                    p.Material = Enum.Material.Slate
-                    p.Reflectance = 0
-                else
+        if v then
+            local success, err = pcall(function()
+                loadstring(game:HttpGet("https://rawscripts.net/raw/RIVALS-Minecraft-texture-229159"))()
+            end)
+            if not success then
+                warn("Error al cargar la textura de Minecraft: " .. tostring(err))
+                Library:Notify("Error al cargar texturas de Minecraft", 3)
+            else
+                Library:Notify("Texturas de Minecraft activadas", 3)
+            end
+        else
+            for _, p in ipairs(workspace:GetDescendants()) do
+                if p:IsA("BasePart") and not p.Parent:FindFirstChild("Humanoid") then
                     p.Material = Enum.Material.Plastic
                 end
             end
+            Library:Notify("Texturas de Minecraft desactivadas", 3)
         end
     end
 })
@@ -552,7 +560,6 @@ local AutoGroup = Tabs.MISC:AddRightGroupbox("Auto Features")
 
 RightMiscGroup:AddButton("Unlock All (Skins/Items)", function()
     pcall(function()
-        -- ==================== LOGICA UNLOCK ALL (FINISHERS / SKINS / CHARMS / WRAPS / DANCES) ====================
         local player = Players.LocalPlayer
         local playerScripts = player.PlayerScripts
         local controllers = playerScripts.Controllers
@@ -621,7 +628,6 @@ RightMiscGroup:AddButton("Unlock All (Skins/Items)", function()
             end)
         end
 
-        -- ==================== SKINS ====================
         CosmeticLibrary.OwnsCosmeticNormally = function(self, inventory, name, weapon)
             local cosmetic = CosmeticLibrary.Cosmetics[name]
             if cosmetic and cosmetic.Type == "Skin" then return true end
@@ -813,42 +819,6 @@ RightMiscGroup:AddButton("Unlock All (Skins/Items)", function()
                 if skinInfo then return skinInfo[highRes and "ImageHighResolution" or "Image"] or skinInfo.Image end
             end
             return originalGetViewModelImage(self, weaponData, highRes)
-        end
-
-        -- ==================== CHARMS ====================
-        local originalOwnsCosmeticCharm = CosmeticLibrary.OwnsCosmetic
-        CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-            if name:find("MISSING_") then return originalOwnsCosmeticCharm(self, inventory, name, weapon) end
-            local cosmetic = CosmeticLibrary.Cosmetics[name]
-            if cosmetic and (cosmetic.Type == "Charm" or name:lower():find("charm")) then return true end
-            return originalOwnsCosmeticCharm(self, inventory, name, weapon)
-        end
-
-        -- ==================== DANCES / EMOTES ====================
-        local originalOwnsCosmeticDance = CosmeticLibrary.OwnsCosmetic
-        CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-            if name:find("MISSING_") then return originalOwnsCosmeticDance(self, inventory, name, weapon) end
-            local cosmetic = CosmeticLibrary.Cosmetics[name]
-            if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then return true end
-            return originalOwnsCosmeticDance(self, inventory, name, weapon)
-        end
-
-        -- ==================== WRAPS ====================
-        local originalOwnsCosmeticWrap = CosmeticLibrary.OwnsCosmetic
-        CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-            if name:find("MISSING_") then return originalOwnsCosmeticWrap(self, inventory, name, weapon) end
-            local cosmetic = CosmeticLibrary.Cosmetics[name]
-            if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or name:lower():find("wrap")) then return true end
-            return originalOwnsCosmeticWrap(self, inventory, name, weapon)
-        end
-
-        -- ==================== FINISHERS ====================
-        local originalOwnsCosmeticFinisher = CosmeticLibrary.OwnsCosmetic
-        CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-            if name:find("MISSING_") then return originalOwnsCosmeticFinisher(self, inventory, name, weapon) end
-            local cosmetic = CosmeticLibrary.Cosmetics[name]
-            if cosmetic and (cosmetic.Type == "Finisher" or name:lower():find("finisher")) then return true end
-            return originalOwnsCosmeticFinisher(self, inventory, name, weapon)
         end
 
         loadConfig()
@@ -1242,12 +1212,6 @@ local function GetClosestTargetPlayer()
         end
     end
     return closest
-end
-
-local function ApplyFakePosition(myRoot, targetCFrame)
-    myRoot.CFrame = targetCFrame
-    myRoot.AssemblyLinearVelocity = Vector3.zero
-    myRoot.AssemblyAngularVelocity = Vector3.zero
 end
 
 RunService.RenderStepped:Connect(function()
