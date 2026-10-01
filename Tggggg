@@ -321,6 +321,25 @@ getgenv().OutdoorAmbientBoostActive = false
 getgenv().FreezeTimeActive = false
 getgenv().FrozenClockVal = 12
 
+-- NUEVO: Función Minecraft Textures
+getgenv().MinecraftTexturesActive = false
+LeftVisualsGroup:AddToggle("MinecraftTexturesToggle", {
+    Text = "Minecraft Textures (Blocks)", Default = false,
+    Callback = function(v)
+        getgenv().MinecraftTexturesActive = v
+        for _, p in ipairs(workspace:GetDescendants()) do
+            if p:IsA("BasePart") and not p.Parent:FindFirstChild("Humanoid") then
+                if v then
+                    p.Material = Enum.Material.Slate
+                    p.Reflectance = 0
+                else
+                    p.Material = Enum.Material.Plastic
+                end
+            end
+        end
+    end
+})
+
 LeftVisualsGroup:AddToggle("FullbrightToggle", {Text = "Fullbright (No Darkness)", Default = false, Callback = function(v) getgenv().FullbrightActive = v end})
 LeftVisualsGroup:AddToggle("CustomClockToggle", {Text = "Custom Clock Time Enabled", Default = false, Callback = function(v) getgenv().CustomClockActive = v end})
 LeftVisualsGroup:AddSlider("ClockTimeSlider", {Text = "Clock Time (Hour)", Default = 14, Min = 0, Max = 24, Rounding = 1, Suffix = " hrs", Callback = function(v) getgenv().ClockTimeVal = v end})
@@ -530,6 +549,22 @@ local LeftMiscGroup = Tabs.MISC:AddLeftGroupbox("Device Spoofer")
 local RightMiscGroup = Tabs.MISC:AddRightGroupbox("Server & Extra Tools")
 local SpinbotGroup = Tabs.MISC:AddLeftGroupbox("Spinbot & Movement")
 local AutoGroup = Tabs.MISC:AddRightGroupbox("Auto Features")
+
+-- NUEVO: Botón Unlock All en MISC
+RightMiscGroup:AddButton("Unlock All (Skins/Items)", function()
+    pcall(function()
+        if getgc then
+            for _, v in pairs(getgc(true)) do
+                if type(v) == "table" then
+                    if rawget(v, "Owned") then v.Owned = true end
+                    if rawget(v, "Unlocked") then v.Unlocked = true end
+                    if rawget(v, "IsOwned") then v.IsOwned = true end
+                end
+            end
+        end
+        Library:Notify("¡Unlock All aplicado correctamente!", 3)
+    end)
+end)
 
 LeftMiscGroup:AddToggle("SpoofDeviceToggle", {
     Text = "Enable Device Spoofing", Default = false,
@@ -819,12 +854,6 @@ local function SendKillSayMessage()
     end
 end
 
-local function GetOptimalHitbox(targetChar)
-    local head = targetChar:FindFirstChild("Head")
-    local hrp = targetChar:FindFirstChild("HumanoidRootPart")
-    return head or hrp
-end
-
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1.5
 FOVCircle.NumSides = 64
@@ -931,7 +960,6 @@ local function ApplyFakePosition(myRoot, targetCFrame)
     myRoot.AssemblyAngularVelocity = Vector3.zero
 end
 
--- Integración del Silent Aim avanzado con hook __index para ViewportSize y WallCheck
 RunService.RenderStepped:Connect(function()
     UpdateFOV()
     SendKillSayMessage()
@@ -1281,7 +1309,7 @@ RunService.RenderStepped:Connect(function(dt)
             if target and isTargetValid(target) and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                 local tChar = target.Character
                 local tHrp = tChar.HumanoidRootPart
-                local optimalHitbox = GetOptimalHitbox(tChar)
+                local optimalHitbox = tChar:FindFirstChild("Head") or tHrp
                 local predictedCFrame = tHrp.CFrame
 
                 if RageMode == "GUN" then
