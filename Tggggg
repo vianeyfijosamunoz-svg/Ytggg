@@ -142,7 +142,6 @@ local SilentFOVRadius = 300
 local SilentFOVColor = Color3.fromRGB(255, 255, 255)
 local SilentMaxDistance = 500
 local activeTargetPos = nil
-local currentSilentTarget = nil
 
 local KatanaFlashEnabled = false
 local EscudoEnabled = false
@@ -321,7 +320,6 @@ getgenv().OutdoorAmbientBoostActive = false
 getgenv().FreezeTimeActive = false
 getgenv().FrozenClockVal = 12
 
--- NUEVO: Función Minecraft Textures
 getgenv().MinecraftTexturesActive = false
 LeftVisualsGroup:AddToggle("MinecraftTexturesToggle", {
     Text = "Minecraft Textures (Blocks)", Default = false,
@@ -329,12 +327,8 @@ LeftVisualsGroup:AddToggle("MinecraftTexturesToggle", {
         getgenv().MinecraftTexturesActive = v
         for _, p in ipairs(workspace:GetDescendants()) do
             if p:IsA("BasePart") and not p.Parent:FindFirstChild("Humanoid") then
-                if v then
-                    p.Material = Enum.Material.Slate
-                    p.Reflectance = 0
-                else
-                    p.Material = Enum.Material.Plastic
-                end
+                p.Material = v and Enum.Material.Slate or Enum.Material.Plastic
+                p.Reflectance = 0
             end
         end
     end
@@ -550,7 +544,6 @@ local RightMiscGroup = Tabs.MISC:AddRightGroupbox("Server & Extra Tools")
 local SpinbotGroup = Tabs.MISC:AddLeftGroupbox("Spinbot & Movement")
 local AutoGroup = Tabs.MISC:AddRightGroupbox("Auto Features")
 
--- NUEVO: Botón Unlock All en MISC
 RightMiscGroup:AddButton("Unlock All (Skins/Items)", function()
     pcall(function()
         if getgc then
