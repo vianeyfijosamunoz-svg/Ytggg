@@ -1070,12 +1070,15 @@ local function toggleSlingBypass(state)
     end
 end
 
+-- AUTO FIRE MEJORADO: Exclusivamente nativo con tool:Activate() (Sin emulación de mouse)
 local function RunInstantAutoShot()
     pcall(function()
         local char = LocalPlayer.Character
         if not char then return end
         local tool = char:FindFirstChildOfClass("Tool")
-        if tool then tool:Activate() end
+        if tool then 
+            tool:Activate() 
+        end
     end)
 end
 
@@ -1582,6 +1585,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 
     if RagebotEnabled then
+        -- Llamada directa al Auto Fire agresivo sin usar el mouse
         RunInstantAutoShot()
         local target = GetClosestTargetPlayer()
 
