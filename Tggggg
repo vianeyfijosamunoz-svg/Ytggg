@@ -17,6 +17,42 @@ if tonumber(game.GameId) ~= RIVALS_GAME_ID then
     return
 end
 
+-- // NUEVAS FUNCIONES: ANTI-AFK Y AUTO-REJOIN //
+local VirtualUser = game:GetService("VirtualUser")
+local CoreGui = game:GetService("CoreGui")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+
+-- 1. Anti-AFK Mejorado
+local function SetupAntiAFK()
+    local LocalPlayer = game:GetService("Players").LocalPlayer
+    local Camera = workspace.CurrentCamera
+    LocalPlayer.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
+        task.wait(1)
+        VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+    end)
+end
+SetupAntiAFK()
+
+-- 2. Auto-Rejoin ante caídas o desconexiones
+local function SetupAutoRejoin()
+    local LocalPlayer = game:GetService("Players").LocalPlayer
+    CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+        if child.Name == "ErrorPrompt" then
+            task.spawn(function()
+                while task.wait(3) do
+                    pcall(function()
+                        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+                    end)
+                end
+            end)
+        end
+    end)
+end
+SetupAutoRejoin()
+-- // FIN DE FUNCIONES NUEVAS //
+
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo.."Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo.."addons/ThemeManager.lua"))()
@@ -29,12 +65,27 @@ Library.ForceCheckbox = false
 Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
-    Title = "APOCALYPSE BETA V3",
+    Title = "APOCALYPSE BETA V3 + MOBILE EX",
     Footer = "DISCORD.GG/SDAPD5UXC",
     Icon = 95816097006870,
     NotifySide = "Right",
     ShowCustomCursor = true
 })
+
+-- // NUEVO: SISTEMA DE KEYBINDS / PANIC BUTTON //
+local ToggleKey = Enum.KeyCode.RightShift -- Tecla para ocultar/mostrar toda la UI rápidamente
+local isUIVisible = true
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == ToggleKey then
+        isUIVisible = not isUIVisible
+        pcall(function()
+            Library:ToggleUI() -- Oculta la librería Obsidian
+        end)
+    end
+end)
+-- // FIN DE KEYBINDS //
 
 local Tabs = {
     Main = Window:AddTab("Main", "crosshair"),
@@ -42,12 +93,12 @@ local Tabs = {
     Visuals = Window:AddTab("Visuals", "sun"),
     MISC = Window:AddTab("MISC", "cpu"),
     CARACTER = Window:AddTab("CARACTER", "user"),
+    MobileEX = Window:AddTab("Mobile EX", "smartphone"),
     ["UI Settings"] = Window:AddTab("UI Settings", "settings")
 }
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -955,6 +1006,119 @@ RightCharGroup:AddSlider("SpeedBoostSlider", {
     Callback = function(v) getgenv().SpeedBoostValue = v end
 })
 
+-- ==================== NUEVAS FUNCIONES MOBILE EX ====================
+local MobileGroupLeft = Tabs.MobileEX:AddLeftGroupbox("Mobile FPS Booster (Potato)")
+local MobileGroupRight = Tabs.MobileEX:AddRightGroupbox("Profiles & Quick Toggles")
+
+MobileGroupLeft:AddToggle("PotatoModeToggle", {
+    Text = "Enable Potato Graphics (Max FPS)", Default = false,
+    Callback = function(v)
+        pcall(function()
+            local lighting = game:GetService("Lighting")
+            lighting.GlobalShadows = not v
+            lighting.FogEnd = v and 9e9 or 1000
+            settings().Rendering.QualityLevel = v and Enum.QualityLevel.Level01 or Enum.QualityLevel.Automatic
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.Material = v and Enum.Material.SmoothPlastic or Enum.Material.Plastic
+                    obj.Reflectance = 0
+                elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") then
+                    obj.Enabled = not v
+                end
+            end
+        end)
+        Library:Notify(v and "Modo Papa Activado (Máximos FPS)" or "Gráficos restaurados", 3)
+    end
+})
+
+MobileGroupRight:AddDropdown("ProfileDropdown", {
+    Values = {"Legit Profile", "Rage Profile", "Performance Profile"}, Default = 1, Multi = false, Text = "Config Profiles",
+    Callback = function(v)
+        if v == "Legit Profile" then
+            if Toggles.AimbotToggle then Toggles.AimbotToggle:SetValue(true) end
+            if Toggles.AimbotWallCheckToggle then Toggles.AimbotWallCheckToggle:SetValue(true) end
+            if Toggles.SilentAimToggle then Toggles.SilentAimToggle:SetValue(false) end
+            if Toggles.RagebotToggle then Toggles.RagebotToggle:SetValue(false) end
+            Library:Notify("Cargado Perfil: Legit", 3)
+        elseif v == "Rage Profile" then
+            if Toggles.RagebotToggle then Toggles.RagebotToggle:SetValue(true) end
+            if Toggles.SilentAimToggle then Toggles.SilentAimToggle:SetValue(true) end
+            Library:Notify("Cargado Perfil: Rage", 3)
+        elseif v == "Performance Profile" then
+            if Toggles.PotatoModeToggle then Toggles.PotatoModeToggle:SetValue(true) end
+            Library:Notify("Cargado Perfil: Rendimiento Móvil", 3)
+        end
+    end
+})
+
+-- Botones Flotantes en Pantalla para Celular (Mobile UI Shortcuts)
+local TouchGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+TouchGui.Name = "ApocalypseTouchShortcuts"
+TouchGui.IgnoreGuiInset = true
+
+local MainButtonFrame = Instance.new("Frame", TouchGui)
+MainButtonFrame.Size = UDim2.new(0, 160, 0, 110)
+MainButtonFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
+MainButtonFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainButtonFrame.BackgroundTransparency = 0.4
+MainButtonFrame.BorderSizePixel = 0
+MainButtonFrame.Active = true
+MainButtonFrame.Draggable = true
+
+local UICorner = Instance.new("UICorner", MainButtonFrame)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+local TitleLabel = Instance.new("TextLabel", MainButtonFrame)
+TitleLabel.Size = UDim2.new(1, 0, 0, 25)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "APOCALYPSE QUICK"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 12
+TitleLabel.Font = Enum.Font.SourceSansBold
+
+local function createFloatingBtn(name, posY, callback)
+    local btn = Instance.new("TextButton", MainButtonFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 25)
+    btn.Position = UDim2.new(0.05, 0, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = name
+    btn.TextSize = 11
+    btn.Font = Enum.Font.SourceSansBold
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    local active = false
+    btn.MouseButton1Click:Connect(function()
+        active = not active
+        btn.BackgroundColor3 = active and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(40, 40, 40)
+        btn.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(200, 200, 200)
+        callback(active)
+    end)
+end
+
+createFloatingBtn("Toggle Aimbot", 30, function(state)
+    AimbotEnabled = state
+    UpdateFOV()
+end)
+
+createFloatingBtn("Toggle Silent Aim", 60, function(state)
+    getgenv().SilentAimEnabled = state
+    UpdateFOV()
+end)
+
+createFloatingBtn("Toggle Spinbot", 90, function(state)
+    getgenv().SpinbotEnabled = state
+end)
+
+MobileGroupRight:AddToggle("ShowTouchMenuToggle", {
+    Text = "Show Floating Touch UI", Default = true,
+    Callback = function(v)
+        TouchGui.Enabled = v
+    end
+})
+-- ===================================================================
+
 local espCache = {}
 
 local function createDrawing(objType, properties)
@@ -1735,7 +1899,7 @@ MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default = "RightShi
 MenuGroup:AddButton("Unload", function()
     DisableRageOptimization()
     toggleSlingBypass(false)
-    ScreenGui:Destroy()
+    TouchGui:Destroy()
     Library:Unload()
 end)
 
