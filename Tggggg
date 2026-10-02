@@ -1,4 +1,4 @@
-local RIVALS_GAME_ID = 6035872082
+Local RIVALS_GAME_ID = 6035872082
 local function notSupportedKick()
     local msg = "this game not supported"
     warn("[shako.win] " .. msg .. " | GameId=" .. tostring(game.GameId))
